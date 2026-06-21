@@ -57,16 +57,10 @@ namespace bnd::detail
     static constexpr imax lhs_widen = (Notch<L> / Notch<result>).value_or(rational{1}).Numerator;
     static constexpr imax rhs_widen = (Notch<R> / Notch<result>).value_or(rational{1}).Numerator;
 
+    // Defined inline (not out-of-line): MSVC mishandles out-of-line member
+    // templates of constrained partial specializations.
     template <policy_flag F = none, typename E = empty_ref, typename A = no_action>
-    static constexpr add_return_t<F, A> add(L, R, policy<F, E> = {}, A&& = {});
-  };
-
-  //---------------------------------------------------------------------------
-  // add
-  //---------------------------------------------------------------------------
-  template<boundable L, boundable R>
-  template<policy_flag F, typename E, typename A>
-  constexpr auto addition<L,R>::add(L lhs, R rhs, policy<F, E> policy, A&& action) -> add_return_t<F, A>
+    static constexpr auto add(L lhs, R rhs, policy<F, E> policy = {}, A&& action = {}) -> add_return_t<F, A>
   {
     result res;
     if constexpr (real_raw<result>)
@@ -112,6 +106,7 @@ namespace bnd::detail
     }
     return res;
   }
+  };
 } // namespace bnd::detail
 
 #endif // BNDadditionHPP

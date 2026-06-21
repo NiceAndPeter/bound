@@ -67,6 +67,11 @@ target_compile_options(bound_bound
         >
         $<$<CXX_COMPILER_ID:MSVC>:
             /W4 /WX /permissive-
+            # C4146: unary minus on unsigned. The library does deliberate modular
+            # negation on umax (e.g. abs/sign handling); the "result still unsigned"
+            # is intended, so this one warning is suppressed rather than papered over
+            # at every site.
+            /wd4146
         >
 )
 
