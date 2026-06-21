@@ -54,8 +54,13 @@ namespace bnd::detail
 
     // Result notch is gcd(NL, NR); scale each raw up to it before adding —
     // lhs_widen = NL/Nresult, rhs_widen = NR/Nresult (exact, Nresult divides both).
-    static constexpr imax lhs_widen = (Notch<L> / Notch<result>).value_or(rational{1}).Numerator;
-    static constexpr imax rhs_widen = (Notch<R> / Notch<result>).value_or(rational{1}).Numerator;
+    // Guard the continuous-grid case (Notch<result> == 0): the rational divide-by-zero
+    // path returns nullopt on GCC/Clang but MSVC's constexpr evaluator rejects it
+    // (C2131). widen is unused on the continuous/rational result path, so 1 is fine.
+    static constexpr imax lhs_widen = (Notch<result> == 0) ? imax{1}
+        : (Notch<L> / Notch<result>).value_or(rational{1}).Numerator;
+    static constexpr imax rhs_widen = (Notch<result> == 0) ? imax{1}
+        : (Notch<R> / Notch<result>).value_or(rational{1}).Numerator;
 
     // Defined inline (not out-of-line): MSVC mishandles out-of-line member
     // templates of constrained partial specializations.
