@@ -67,11 +67,12 @@ target_compile_options(bound_bound
         >
         $<$<CXX_COMPILER_ID:MSVC>:
             /W4 /WX /permissive-
-            # C4146: unary minus on unsigned. The library does deliberate modular
-            # negation on umax (e.g. abs/sign handling); the "result still unsigned"
-            # is intended, so this one warning is suppressed rather than papered over
-            # at every site.
-            /wd4146
+            /utf-8   # source is UTF-8 (e.g. ≤ in comments) — avoid C4566
+            # Suppressed warnings are intentional patterns in this template code:
+            #   C4146 — unary minus on unsigned (deliberate modular negation on umax)
+            #   C4127 — conditional expression is constant (runtime `if` on constexpr)
+            #   C4459 — local declaration hides a global (benign local naming)
+            /wd4146 /wd4127 /wd4459
         >
 )
 
