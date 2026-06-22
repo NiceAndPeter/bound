@@ -175,7 +175,7 @@ namespace bnd::detail
     // (overflow). So when the divisor excludes zero AND this is false, `div`
     // returns a plain `result` rather than optional<result>.
     static constexpr bool may_overflow_nonzero =
-        !native_div && !real_raw<result> && (needs_overflow_check<F> != 0);
+        !native_div && !f64_raw<result> && (needs_overflow_check<F> != 0);
 
     // Real division can still fail on a zero divisor, so it uses the same
     // return-type rule as the rest: plain `result` when the op cannot fail
@@ -218,7 +218,7 @@ namespace bnd::detail
     [[maybe_unused]] constexpr bool zero_unchecked = DivisorExcludesZero<R>
         || (((G | F | BoundPolicy<L> | BoundPolicy<R>) & ignore_zero) != 0);
 
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       // Real division reports zero like every other path (throw / report /
       // action / nullopt). Finite operands keep the quotient finite, so no

@@ -4043,18 +4043,18 @@ namespace bnd
     // How a bound's value lives in its raw storage — four disjoint encodings
     // (selected by policy flags or deduced; see grid.hpp storage_pick):
     //   rational_raw — raw IS the value, as a rational.
-    //   real_raw     — raw IS the value, as an IEEE-754 double (dyadic grids only).
+    //   f64_raw     — raw IS the value, as an IEEE-754 double (dyadic grids only).
     //   value_raw    — raw IS the value, as a plain integer.
     //   index_raw    — raw is a 0-based notch index; value = Lower + raw*Notch.
     template <boundable B>
-    inline constexpr bool real_raw = std::is_same_v<raw_t<B>, double>;
+    inline constexpr bool f64_raw = std::is_same_v<raw_t<B>, double>;
 
     template <boundable B>
     inline constexpr bool rational_raw = std::is_same_v<raw_t<B>, rational>;
 
     template <boundable B>
     inline constexpr bool value_raw =
-         !real_raw<B> && !rational_raw<B>
+         !f64_raw<B> && !rational_raw<B>
       && ((BoundPolicy<B> & bnd::direct) == bnd::direct
           || ((BoundPolicy<B> & bnd::indexed) != bnd::indexed
               && Notch<B> == 1
@@ -4062,7 +4062,7 @@ namespace bnd
 
     template <boundable B>
     inline constexpr bool index_raw =
-         !real_raw<B> && !rational_raw<B> && !value_raw<B>;
+         !f64_raw<B> && !rational_raw<B> && !value_raw<B>;
 
     // Ungated double view of any bound, for the `real` arithmetic arms (the
     // public operator double() is gated on a rounding flag; this is always
@@ -4729,7 +4729,7 @@ namespace bnd::detail
         // or NotchCount, no rounding. real takes the endpoint as a double, rational
         // the exact constant (a double round-trip would lose non-dyadic endpoints);
         // raw_from_offset<L> adds Lower back for direct-encoded storage.
-        if constexpr (real_raw<L>)
+        if constexpr (f64_raw<L>)
           lhs = L::from_raw((rhs < Lower<L>) ? static_cast<double>(Lower<L>)
                                              : static_cast<double>(Upper<L>));
         else if constexpr (rational_raw<L>)
@@ -4775,10 +4775,10 @@ namespace bnd::detail
       {
         if constexpr (rational_raw<L> && Notch<L> == 0)
         { lhs = L::from_raw(rhs); return true; }   // continuous: store verbatim
-        else if constexpr (real_raw<L>)
+        else if constexpr (f64_raw<L>)
         {
           // real target: raw IS the value — snap to the dyadic grid (range handling
-          // already ran in the assign cascade; finite guard mirrors store_real's).
+          // already ran in the assign cascade; finite guard mirrors store_f64's).
           const double v = static_cast<double>(rhs);
           if (!(v - v == 0))
             detail::raise(errc::not_finite, "non-finite double");
@@ -4818,7 +4818,7 @@ namespace bnd::detail
           // instead of two rational ops. round_quotient is invariant under reduction,
           // so the slot is bit-identical to the rational path. Oversized denominators
           // fall through (the kMaxDen guard keeps every product inside imax).
-          if constexpr (HasQFormatFastPath<L> && !real_raw<L> && Notch<L> != 0)
+          if constexpr (HasQFormatFastPath<L> && !f64_raw<L> && Notch<L> != 0)
           {
             constexpr imax K  = abs_den(Notch<L>.Denominator);
             constexpr imax Lo = LowerImax<L>;
@@ -4911,7 +4911,7 @@ namespace bnd::detail
         if constexpr (rational_raw<L>)
           return Lower<R>;
         else if constexpr (Notch<L> == 0)
-          // Continuous real_raw L: no grid to land on, mapping unused (store
+          // Continuous f64_raw L: no grid to land on, mapping unused (store
           // routes through snap_double). 0 avoids the /Notch<L> divide-by-zero.
           return rational{0};
         else if constexpr (rational_raw<R>)
@@ -4925,7 +4925,7 @@ namespace bnd::detail
         if constexpr (rational_raw<L>)
           return Notch<R>;
         else if constexpr (Notch<L> == 0)
-          // Continuous real_raw L (see calcOffset). A denominator-1 Factor also
+          // Continuous f64_raw L (see calcOffset). A denominator-1 Factor also
           // makes assign_notch_ok vacuously true (any value representable).
           return rational{0};
         else if constexpr (rational_raw<R>)
@@ -4942,7 +4942,7 @@ namespace bnd::detail
       // sides (not rational, not real).
       static constexpr bool is_integer_mapping =
           !rational_raw<L> && !rational_raw<R>
-          && !real_raw<L> && !real_raw<R>
+          && !f64_raw<L> && !f64_raw<R>
           && abs_den(Factor.Denominator) == 1 && abs_den(Offset.Denominator) == 1;
 
       // Map rhs.Raw into L's raw space (requires is_integer_mapping). The
@@ -4981,7 +4981,7 @@ namespace bnd::detail
       {
         // RawLo/RawHi are already the correct Raw (no raw_from_offset). Real storage
         // takes the endpoint as a double (RawLo/Hi truncate fractional dyadic endpoints).
-        if constexpr (real_raw<L>)
+        if constexpr (f64_raw<L>)
           lhs = L::from_raw((as_rational(rhs) < Lower<L>)
             ? static_cast<double>(Lower<L>) : static_cast<double>(Upper<L>));
         else
@@ -5050,7 +5050,7 @@ namespace bnd::detail
       template<typename P>
       static constexpr void store(L& lhs, R const& rhs, P&&)
       {
-        if constexpr (real_raw<L>)
+        if constexpr (f64_raw<L>)
           // real target: raw IS the value — decode the source and snap to the dyadic
           // grid (the offset machinery below mis-encodes a double raw).
           lhs = L::from_raw(Grid<L>.snap_double(as_double(rhs)));
@@ -5558,7 +5558,7 @@ namespace bnd::detail
     static constexpr auto add(L lhs, R rhs, policy<F, E> policy = {}, A&& action = {}) -> add_return_t<F, A>
   {
     result res;
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       res = result::from_raw(Grid<result>.snap_double(as_double(lhs) + as_double(rhs)));
     }
@@ -5664,7 +5664,7 @@ namespace bnd::detail
     template <typename P, typename A = no_action>
     static constexpr auto mul(L lhs, R rhs, P&& policy, A&& action = {}) -> mul_return_t<P, A>
   {
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       return result::from_raw(Grid<result>.snap_double(as_double(lhs) * as_double(rhs)));
     }
@@ -5688,7 +5688,7 @@ namespace bnd::detail
       from_value(res, to_value(lhs) * to_value(rhs));
       return res;
     }
-    else if constexpr (real_raw<L> || real_raw<R> || rational_raw<L> || rational_raw<R>)
+    else if constexpr (f64_raw<L> || f64_raw<R> || rational_raw<L> || rational_raw<R>)
     {
       // An operand whose raw is a double/rational can't feed the integer
       // four-quadrant formula below (it reads the raw as an integer offset).
@@ -5931,7 +5931,7 @@ namespace bnd::detail
     // (overflow). So when the divisor excludes zero AND this is false, `div`
     // returns a plain `result` rather than optional<result>.
     static constexpr bool may_overflow_nonzero =
-        !native_div && !real_raw<result> && (needs_overflow_check<F> != 0);
+        !native_div && !f64_raw<result> && (needs_overflow_check<F> != 0);
 
     // Real division can still fail on a zero divisor, so it uses the same
     // return-type rule as the rest: plain `result` when the op cannot fail
@@ -5974,7 +5974,7 @@ namespace bnd::detail
     [[maybe_unused]] constexpr bool zero_unchecked = DivisorExcludesZero<R>
         || (((G | F | BoundPolicy<L> | BoundPolicy<R>) & ignore_zero) != 0);
 
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       // Real division reports zero like every other path (throw / report /
       // action / nullopt). Finite operands keep the quotient finite, so no
@@ -6231,7 +6231,7 @@ namespace bnd
     // Snap a value onto `real` storage: lossless on the dyadic grid. Out-of-range
     // values run the same policy cascade as the fractional path (clamp → wrap →
     // sentinel/checked-report → store as-is); all arithmetic stays in double.
-    constexpr void store_real(double v)
+    constexpr void store_f64(double v)
     {
       // NaN/±inf would reach snap_double's integer cast (UB); reject like the
       // non-real path. `v - v` is 0 for every finite v, NaN otherwise.
@@ -6273,14 +6273,14 @@ namespace bnd
     template <numeric A>
     constexpr void store_value(A const& value)
     {
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else if constexpr (is_bound_v<A>)
       {
         // A `real` SOURCE holds its value as a double raw; the assignment engine's
         // integer offset formula (Lower + raw·Notch) would misread it. Extract as
         // a double and route through the arithmetic-source path.
-        if constexpr (detail::real_raw<A>)
+        if constexpr (detail::f64_raw<A>)
           detail::assignment<bound, double>::assign(*this, detail::as_double(value), make_policy<P>());
         else
           detail::assignment<bound, A>::assign(*this, value, make_policy<P>());
@@ -6301,8 +6301,8 @@ namespace bnd
       // The one-shot `pol` widens the assignable check (a clamp/round passed here
       // relaxes the notch/interval clause), so a notch-incompatible boundable source
       // is accepted — e.g. clamp_round<B>(some_bound). Body honours `pol` as before.
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else
         detail::assignment<bound, A>::assign(*this, value, pol);
     }
@@ -6315,8 +6315,8 @@ namespace bnd
       requires bound_assignable<bound, A, P>
     constexpr bound(A value, errc& ec)
     {
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else
         detail::assignment<bound, A>::assign(*this, value, make_policy<P>(ec));
     }
@@ -6538,7 +6538,7 @@ namespace bnd
     [[nodiscard]] constexpr negative operator-() const
     {
       negative neg;
-      if constexpr (detail::real_raw<bound>)
+      if constexpr (detail::f64_raw<bound>)
         neg = negative::from_raw(-Raw);
       else if constexpr (detail::rational_raw<bound>)
         neg = negative::from_raw(-(Raw));
@@ -6811,7 +6811,7 @@ namespace bnd
     if constexpr (Grid<L> == Grid<R>)
       return lhs.raw() <=> rhs.raw();
     // double-backed (`real`) operand: compare in double (raw_imax would truncate)
-    else if constexpr (detail::real_raw<L> || detail::real_raw<R>)
+    else if constexpr (detail::f64_raw<L> || detail::f64_raw<R>)
       return detail::as_double(lhs) <=> detail::as_double(rhs);
     // both integer-direct (notch=1, Raw==value): compare as integers
     else if constexpr (!detail::rational_raw<L> && !detail::rational_raw<R>
@@ -6826,7 +6826,7 @@ namespace bnd
   {
     if constexpr (Grid<L> == Grid<R>)
       return lhs.raw() == rhs.raw();
-    else if constexpr (detail::real_raw<L> || detail::real_raw<R>)
+    else if constexpr (detail::f64_raw<L> || detail::f64_raw<R>)
       return detail::as_double(lhs) == detail::as_double(rhs);
     else if constexpr (!detail::rational_raw<L> && !detail::rational_raw<R>
                        && !detail::index_raw<L> && !detail::index_raw<R>)
@@ -8492,7 +8492,7 @@ namespace bnd::math
         && !rational_raw<Out>
         // `real` storage holds the VALUE, not an offset index, so route it
         // through the rational fallback `Out{r}` (same guard as fmod_int_fast).
-        && !real_raw<Out>
+        && !f64_raw<Out>
         && has_flag(BoundPolicy<Out>, round_nearest)
         && (std::signed_integral<raw_t<Out>>
             || NotchCount<Out>
@@ -9143,9 +9143,9 @@ namespace bnd::math
     //   * all unit counts fit comfortably in imax (headroom 4).
     template <boundable Out, boundable InX, boundable InY>
     inline constexpr bool fmod_int_fast = []{
-      if (rational_raw<InX> || real_raw<InX>
-       || rational_raw<InY> || real_raw<InY>
-       || rational_raw<Out> || real_raw<Out>)
+      if (rational_raw<InX> || f64_raw<InX>
+       || rational_raw<InY> || f64_raw<InY>
+       || rational_raw<Out> || f64_raw<Out>)
         return false;
       if (Notch<InX> == 0 || Notch<InY> == 0 || Notch<Out> == 0)
         return false;
@@ -10897,10 +10897,10 @@ namespace bnd
   // rational-raw bound has no std::to_string at all.) A continuous (Notch == 0)
   // real bound prints the double.
   template <boundable B>
-    requires (detail::real_raw<B> || detail::rational_raw<B>)
+    requires (detail::f64_raw<B> || detail::rational_raw<B>)
   inline std::string to_string(B b)
   {
-    if constexpr (detail::real_raw<B> && Notch<B> == bnd::detail::rational{0})
+    if constexpr (detail::f64_raw<B> && Notch<B> == bnd::detail::rational{0})
       return std::to_string(detail::as_double(b));
     else
       return to_string(bnd::detail::as_rational(b));

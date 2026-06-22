@@ -60,7 +60,7 @@ namespace bnd::detail
     template <typename P, typename A = no_action>
     static constexpr auto mul(L lhs, R rhs, P&& policy, A&& action = {}) -> mul_return_t<P, A>
   {
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       return result::from_raw(Grid<result>.snap_double(as_double(lhs) * as_double(rhs)));
     }
@@ -84,7 +84,7 @@ namespace bnd::detail
       from_value(res, to_value(lhs) * to_value(rhs));
       return res;
     }
-    else if constexpr (real_raw<L> || real_raw<R> || rational_raw<L> || rational_raw<R>)
+    else if constexpr (f64_raw<L> || f64_raw<R> || rational_raw<L> || rational_raw<R>)
     {
       // An operand whose raw is a double/rational can't feed the integer
       // four-quadrant formula below (it reads the raw as an integer offset).

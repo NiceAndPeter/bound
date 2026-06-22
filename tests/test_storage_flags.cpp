@@ -124,7 +124,7 @@ TEST_CASE("representation flags resolve widest-wins", "[storage][policy]")
   // BND_MATH_FIXED the real arm is elided and direct wins).
   using RD = bound<{0, 4}, real | direct>;
 #ifndef BND_MATH_FIXED
-  STATIC_REQUIRE(detail::real_raw<RD>);
+  STATIC_REQUIRE(detail::f64_raw<RD>);
 #else
   STATIC_REQUIRE(detail::value_raw<RD>);
 #endif
@@ -149,7 +149,7 @@ TEST_CASE("f64 is the canonical double-backed flag; real is its alias",
   using R = bound<{{0, 4}, notch<1, 256>}, round_nearest | real>;
   STATIC_REQUIRE(std::is_same_v<F::raw_type, double>);
   STATIC_REQUIRE(std::is_same_v<F::raw_type, R::raw_type>);
-  STATIC_REQUIRE(detail::real_raw<F>);
+  STATIC_REQUIRE(detail::f64_raw<F>);
 #endif
 }
 
@@ -256,7 +256,7 @@ TEST_CASE("atan / atan2 accept magnitudes beyond 1", "[cmath][atan][domain]")
 }
 
 // Regression: per-operation policy overrides (`with_*`, `on_*`, `policy(ec)`)
-// route through the assignment engine, which previously had no real_raw arm
+// route through the assignment engine, which previously had no f64_raw arm
 // and wrote integer offsets into the double raw (e.g. with_clamp stored the
 // notch COUNT instead of the endpoint).
 TEST_CASE("per-operation policies work on real-backed bounds",

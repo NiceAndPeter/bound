@@ -113,18 +113,18 @@ namespace bnd
     // How a bound's value lives in its raw storage — four disjoint encodings
     // (selected by policy flags or deduced; see grid.hpp storage_pick):
     //   rational_raw — raw IS the value, as a rational.
-    //   real_raw     — raw IS the value, as an IEEE-754 double (dyadic grids only).
+    //   f64_raw     — raw IS the value, as an IEEE-754 double (dyadic grids only).
     //   value_raw    — raw IS the value, as a plain integer.
     //   index_raw    — raw is a 0-based notch index; value = Lower + raw*Notch.
     template <boundable B>
-    inline constexpr bool real_raw = std::is_same_v<raw_t<B>, double>;
+    inline constexpr bool f64_raw = std::is_same_v<raw_t<B>, double>;
 
     template <boundable B>
     inline constexpr bool rational_raw = std::is_same_v<raw_t<B>, rational>;
 
     template <boundable B>
     inline constexpr bool value_raw =
-         !real_raw<B> && !rational_raw<B>
+         !f64_raw<B> && !rational_raw<B>
       && ((BoundPolicy<B> & bnd::direct) == bnd::direct
           || ((BoundPolicy<B> & bnd::indexed) != bnd::indexed
               && Notch<B> == 1
@@ -132,7 +132,7 @@ namespace bnd
 
     template <boundable B>
     inline constexpr bool index_raw =
-         !real_raw<B> && !rational_raw<B> && !value_raw<B>;
+         !f64_raw<B> && !rational_raw<B> && !value_raw<B>;
 
     // Ungated double view of any bound, for the `real` arithmetic arms (the
     // public operator double() is gated on a rounding flag; this is always

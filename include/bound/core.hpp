@@ -123,7 +123,7 @@ namespace bnd
     // Snap a value onto `real` storage: lossless on the dyadic grid. Out-of-range
     // values run the same policy cascade as the fractional path (clamp → wrap →
     // sentinel/checked-report → store as-is); all arithmetic stays in double.
-    constexpr void store_real(double v)
+    constexpr void store_f64(double v)
     {
       // NaN/±inf would reach snap_double's integer cast (UB); reject like the
       // non-real path. `v - v` is 0 for every finite v, NaN otherwise.
@@ -165,14 +165,14 @@ namespace bnd
     template <numeric A>
     constexpr void store_value(A const& value)
     {
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else if constexpr (is_bound_v<A>)
       {
         // A `real` SOURCE holds its value as a double raw; the assignment engine's
         // integer offset formula (Lower + raw·Notch) would misread it. Extract as
         // a double and route through the arithmetic-source path.
-        if constexpr (detail::real_raw<A>)
+        if constexpr (detail::f64_raw<A>)
           detail::assignment<bound, double>::assign(*this, detail::as_double(value), make_policy<P>());
         else
           detail::assignment<bound, A>::assign(*this, value, make_policy<P>());
@@ -193,8 +193,8 @@ namespace bnd
       // The one-shot `pol` widens the assignable check (a clamp/round passed here
       // relaxes the notch/interval clause), so a notch-incompatible boundable source
       // is accepted — e.g. clamp_round<B>(some_bound). Body honours `pol` as before.
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else
         detail::assignment<bound, A>::assign(*this, value, pol);
     }
@@ -207,8 +207,8 @@ namespace bnd
       requires bound_assignable<bound, A, P>
     constexpr bound(A value, errc& ec)
     {
-      if constexpr (detail::real_raw<bound>)
-        store_real(to_double(value));
+      if constexpr (detail::f64_raw<bound>)
+        store_f64(to_double(value));
       else
         detail::assignment<bound, A>::assign(*this, value, make_policy<P>(ec));
     }
@@ -430,7 +430,7 @@ namespace bnd
     [[nodiscard]] constexpr negative operator-() const
     {
       negative neg;
-      if constexpr (detail::real_raw<bound>)
+      if constexpr (detail::f64_raw<bound>)
         neg = negative::from_raw(-Raw);
       else if constexpr (detail::rational_raw<bound>)
         neg = negative::from_raw(-(Raw));
@@ -703,7 +703,7 @@ namespace bnd
     if constexpr (Grid<L> == Grid<R>)
       return lhs.raw() <=> rhs.raw();
     // double-backed (`real`) operand: compare in double (raw_imax would truncate)
-    else if constexpr (detail::real_raw<L> || detail::real_raw<R>)
+    else if constexpr (detail::f64_raw<L> || detail::f64_raw<R>)
       return detail::as_double(lhs) <=> detail::as_double(rhs);
     // both integer-direct (notch=1, Raw==value): compare as integers
     else if constexpr (!detail::rational_raw<L> && !detail::rational_raw<R>
@@ -718,7 +718,7 @@ namespace bnd
   {
     if constexpr (Grid<L> == Grid<R>)
       return lhs.raw() == rhs.raw();
-    else if constexpr (detail::real_raw<L> || detail::real_raw<R>)
+    else if constexpr (detail::f64_raw<L> || detail::f64_raw<R>)
       return detail::as_double(lhs) == detail::as_double(rhs);
     else if constexpr (!detail::rational_raw<L> && !detail::rational_raw<R>
                        && !detail::index_raw<L> && !detail::index_raw<R>)

@@ -68,7 +68,7 @@ namespace bnd::detail
     static constexpr auto add(L lhs, R rhs, policy<F, E> policy = {}, A&& action = {}) -> add_return_t<F, A>
   {
     result res;
-    if constexpr (real_raw<result>)
+    if constexpr (f64_raw<result>)
     {
       res = result::from_raw(Grid<result>.snap_double(as_double(lhs) + as_double(rhs)));
     }
