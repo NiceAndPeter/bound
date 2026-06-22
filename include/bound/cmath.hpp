@@ -256,7 +256,7 @@ namespace bnd::math
         && !rational_raw<Out>
         // `real` storage holds the VALUE, not an offset index, so route it
         // through the rational fallback `Out{r}` (same guard as fmod_int_fast).
-        && !f64_raw<Out>
+        && !fp_raw<Out>
         && has_flag(BoundPolicy<Out>, round_nearest)
         && (std::signed_integral<raw_t<Out>>
             || NotchCount<Out>
@@ -907,9 +907,9 @@ namespace bnd::math
     //   * all unit counts fit comfortably in imax (headroom 4).
     template <boundable Out, boundable InX, boundable InY>
     inline constexpr bool fmod_int_fast = []{
-      if (rational_raw<InX> || f64_raw<InX>
-       || rational_raw<InY> || f64_raw<InY>
-       || rational_raw<Out> || f64_raw<Out>)
+      if (rational_raw<InX> || fp_raw<InX>
+       || rational_raw<InY> || fp_raw<InY>
+       || rational_raw<Out> || fp_raw<Out>)
         return false;
       if (Notch<InX> == 0 || Notch<InY> == 0 || Notch<Out> == 0)
         return false;
